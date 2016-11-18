@@ -2,14 +2,16 @@
 var express = require('express');
 var router = express.Router();
 
+var previousMax = 0;
 var getRandomData = function(length){
     var data = {data: []};
     for(var i = 0; i < length; i++){
         data.data.push({
-            number: (i+1),
+            number: (previousMax + i + 1),
             random: Math.random().toString().slice(2)
         });
     }
+    previousMax = data.length
     return data;
 };
 

@@ -2,23 +2,6 @@
  * $(dom).data("scrollingData", dataArray).scrollAppend(template);
  * 
  */
- String.prototype.formatStr=function() {
-    if(arguments.length===0) return this;
-    var s=this;
-    var doReplace = function(key, value){
-        s = s.replace(new RegExp("\\{"+key+"\\}","g"), (value == null || value == undefined) ? "" : value);
-    };
-    if(arguments.length === 1 && arguments[0].constructor === Object) {
-        var params = arguments[0];
-        for(var key in params){
-            doReplace(key, params[key]);
-        }
-    }
-    for(var i = 0; i < arguments.length; i++){
-        doReplace(i, arguments[i]);
-    }
-    return s;
-};
 (function($){
     var setData = function(){
         if(arguments.length === 1 
@@ -43,6 +26,7 @@
             pages: 3,
             helperHeight: 30,
             sensitivity: 5,
+            scrollHelper: "<div></div>",
             isFromTop: false
         }, options);
         this.scrollData = {};
@@ -84,14 +68,6 @@
         
     };
     $.extend(scrollAppender.prototype, {
-        extendScrollingData:function(){
-            var scrollingData = this.$scrollWrapper.data("scrollingData");
-            var exData = [];
-            scrollingData.forEach(function(data, index){
-                exData.push($.extend({scrollingDataIndex: index}, data));
-            });
-            this.scrollData.extendedScrollingData = exData;
-        },
         addDataIndexInTemplate: function(){
             var strArray = [];
             var index = this.template.indexOf(">"); 
@@ -100,44 +76,59 @@
             strArray.push(this.template.slice(index));
             this.template = strArray.join("");
         },
-        update: function (template, options){
-            if(template){
-                this.template = template;
-            }
-            if(options){
-               this.opt = $.extend(this.opt, options); 
-            }
-            var maxDataIndex = this.$scrollWrapper.data("scrollingData").length - 1;
-            var displayLength = this.opt.size * this.opt.pages;
-            if(this.opt.isFromTop){
-                this.$scrollWrapper.setData("currentIndexRange", 0 + "," + (displayLength - 1));
+        addScrollHelper:function(){
+            if(this.scrollData.isScrollingUp){
+                if(this.$scrollWrapper.children().first().is("div.scrollHelper"))
+                    return;
             } else {
-                this.$scrollWrapper.setData("currentIndexRange", (maxDataIndex - displayLength + 1) + "," + maxDataIndex);
+                if(this.$scrollWrapper.children().last().is("div.scrollHelper"))
+                    return;
             }
-        },
-        updateScrollData: function(e){
-            var previousScrollTop = this.scrollData.scrollTop;
-            var scrollTop = this.$scrollWrapper.scrollTop();
-            if(previousScrollTop + this.opt.sensitivity < scrollTop){
-                this.scrollData.isScrollingUp = false;
-            } else if(previousScrollTop - this.opt.sensitivity > scrollTop){
-                this.scrollData.isScrollingUp = true;
-            } else {
+            if(!this.isNeedHelper()){
                 return;
             }
-            this.scrollData.wrapperHeight = this.$scrollWrapper.height();
-            this.scrollData.scrollHeight = this.$scrollWrapper[0].scrollHeight;
-            this.scrollData.scrollTop = scrollTop;
-        },
-        scrollHandler: function(){
-            this.addScrollHelper();
+            var $helper = $(this.opt.scrollHelper);
+            $helper.addClass("scrollHelper").height(this.opt.helperHeight);
+            this.removeScrollHelper();
             if(this.scrollData.isScrollingUp){
-                this.forScrollingUp();
+                this.$scrollWrapper.prepend($helper);
             } else {
-                this.forScrollingDown();
+                this.$scrollWrapper.append($helper);
             }
         },
-        
+        doAutoAdjustScroll:function(){
+            var positionTop;
+            if(this.scrollData.isScrollingUp){
+                positionTop = this.opt.helperHeight;
+            } else {
+                positionTop = this.scrollData.scrollHeight - this.scrollData.wrapperHeight - this.opt.helperHeight;
+            }
+            this.$scrollWrapper.stop().animate({scrollTop: positionTop}, 500, "swing");
+        },
+        extendScrollingData:function(){
+            var scrollingData = this.$scrollWrapper.data("scrollingData");
+            var exData = [];
+            scrollingData.forEach(function(data, index){
+                exData.push($.extend({scrollingDataIndex: index}, data));
+            });
+            this.scrollData.extendedScrollingData = exData;
+        },
+        forScrollingDown:function(){
+            if(this.isNeedData()){
+                var start,end;
+                var range = this.$scrollWrapper.data("currentIndexRange");
+                var totalDataLength = this.scrollData.extendedScrollingData.length - 1;
+                start = range.split(",")[0] - 0;
+                end = range.split(",")[1] - 0;
+                
+                var newStart = start + this.opt.size;
+                var newEnd = end + this.opt.size;
+                
+                newStart = newEnd > totalDataLength ? (newStart - (newEnd - totalDataLength)) : newStart;
+                newEnd = newEnd > totalDataLength ? totalDataLength : newEnd;
+                this.$scrollWrapper.setData("currentIndexRange", newStart + "," + newEnd);
+            }
+        },
         forScrollingUp:function(){
             if(this.isNeedData()){
                 var start,end;
@@ -145,29 +136,47 @@
                 start = range.split(",")[0] - 0;
                 end = range.split(",")[1] - 0;
                 
-                start -= this.opt.size;
-                end -= this.opt.size;
+                var newStart = start - this.opt.size;
+                var newEnd = end - this.opt.size;
                 
-                start = start < 0 ? 0 : start;
-                this.$scrollWrapper.setData("currentIndexRange", start + "," + end);
+                newEnd = newStart < 0 ? (newEnd - newStart) : newEnd;
+                newStart = newStart < 0 ? 0 : newStart;
+                
+                this.$scrollWrapper.setData("currentIndexRange", newStart + "," + newEnd);
             }
         },
-        forScrollingDown:function(){
-            if(this.isNeedData()){
-                var start,end;
-                var range = this.$scrollWrapper.data("currentIndexRange");
-                var totalDataLength = this.scrollData.extendedScrollingData.length;
-                start = range.split(",")[0] - 0;
-                end = range.split(",")[1] - 0;
+        getDataFrame: function(){
+            var start, end;
+            var range = this.$scrollWrapper.data("currentIndexRange");
+            console.log(range);
+            start = range.split(",")[0] - 0;
+            end = range.split(",")[1] - 0;
                 
-                start += this.opt.size;
-                end += this.opt.size;
-                
-                end = end > totalDataLength ? totalDataLength : end;
-                this.$scrollWrapper.setData("currentIndexRange", start + "," + end);
+            var scrollingData = this.scrollData.extendedScrollingData;
+            var dataFrame = [];
+            for(var i = start; i <= end; i++){
+                dataFrame.push(scrollingData[i]);
             }
+            
+            return dataFrame;
+        },
+        getInnerHTML: function(dataArray){
+            var html = "";
+            var _this = this;
+            dataArray.forEach(function(ele, index){
+                html += _this.template.formatStr(ele);
+            });
+            return html;
+        },
+        isDataNotEnough: function(){
+            return this.$scrollWrapper.data("scrollingData").length 
+                    <= this.opt.size * (this.opt.pages + 1);
         },
         isNeedData: function(){
+            if(this.isDataNotEnough()){
+                return false;
+            }
+            
             var wrapperHeight = this.scrollData.wrapperHeight;
             var scrollTop = this.scrollData.scrollTop;
             var scrollHeight = this.scrollData.scrollHeight;
@@ -179,6 +188,10 @@
             }
         },
         isNeedHelper: function(){
+            if(this.isDataNotEnough()){
+                return false;
+            }
+            
             var wrapperHeight = this.scrollData.wrapperHeight;
             var scrollTop = this.scrollData.scrollTop;
             var scrollHeight = this.scrollData.scrollHeight;
@@ -201,6 +214,40 @@
             var maxDataIndex = this.$scrollWrapper.data("scrollingData").length - 1;
             end = range.split(",")[1];
             return end == maxDataIndex;
+        },
+        removeScrollHelper:function(){
+            this.$scrollWrapper.children("div.scrollHelper")
+                .remove();
+        },
+        scrollHandler: function(){
+            this.addScrollHelper();
+            if(this.scrollData.isScrollingUp){
+                this.forScrollingUp();
+            } else {
+                this.forScrollingDown();
+            }
+        },
+        update: function (template, options){
+            if(template){
+                this.template = template;
+            }
+            if(options){
+               this.opt = $.extend(this.opt, options); 
+            }
+            var maxDataIndex = this.$scrollWrapper.data("scrollingData").length - 1;
+            var displayLength = this.opt.size * this.opt.pages;
+            var start = 0, end = maxDataIndex;
+            if(this.opt.isFromTop){
+                end = displayLength - 1;
+            } else {
+                start = maxDataIndex - displayLength + 1;
+                start = start < 0 ? 0 : start;
+            }
+            if(this.isDataNotEnough()){
+                start = 0;
+                end = maxDataIndex;
+            }
+            this.$scrollWrapper.setData("currentIndexRange", start + "," + end);
         },
         updateDisplayingItems: function(){
             var i, item;
@@ -242,60 +289,19 @@
                 this.doAutoAdjustScroll();
             }
         },
-        getDataFrame: function(){
-            var start, end;
-            var range = this.$scrollWrapper.data("currentIndexRange");
-            start = range.split(",")[0] - 0;
-            end = range.split(",")[1] - 0;
-                
-            var scrollingData = this.scrollData.extendedScrollingData;
-            var dataFrame = [];
-            for(var i = start; i <= end; i++){
-                dataFrame.push(scrollingData[i]);
-            }
-            
-            return dataFrame;
-        },
-        getInnerHTML: function(dataArray){
-            var html = "";
-            var _this = this;
-            dataArray.forEach(function(ele, index){
-                html += _this.template.formatStr(ele);
-            });
-            return html;
-        },
-        doAutoAdjustScroll:function(){
-            var positionTop;
-            if(this.scrollData.isScrollingUp){
-                positionTop = this.opt.helperHeight;
+        updateScrollData: function(e){
+            var previousScrollTop = this.scrollData.scrollTop;
+            var scrollTop = this.$scrollWrapper.scrollTop();
+            if(previousScrollTop + this.opt.sensitivity < scrollTop){
+                this.scrollData.isScrollingUp = false;
+            } else if(previousScrollTop - this.opt.sensitivity > scrollTop){
+                this.scrollData.isScrollingUp = true;
             } else {
-                positionTop = this.scrollData.scrollHeight - this.scrollData.wrapperHeight - this.opt.helperHeight;
-            }
-            this.$scrollWrapper.stop().animate({scrollTop: positionTop}, 500, "swing");
-        },
-        addScrollHelper:function(){
-            if(this.scrollData.isScrollingUp){
-                if(this.$scrollWrapper.children().first().is("div.scrollHelper"))
-                    return;
-            } else {
-                if(this.$scrollWrapper.children().last().is("div.scrollHelper"))
-                    return;
-            }
-            if(!this.isNeedHelper()){
                 return;
             }
-            var $helper = $("<div></div>");
-            $helper.addClass("scrollHelper").height(this.opt.helperHeight);
-            this.removeScrollHelper();
-            if(this.scrollData.isScrollingUp){
-                this.$scrollWrapper.prepend($helper);
-            } else {
-                this.$scrollWrapper.append($helper);
-            }
-        },
-        removeScrollHelper:function(){
-            this.$scrollWrapper.children("div.scrollHelper")
-                .remove();
+            this.scrollData.wrapperHeight = this.$scrollWrapper.height();
+            this.scrollData.scrollHeight = this.$scrollWrapper[0].scrollHeight;
+            this.scrollData.scrollTop = scrollTop;
         }
     });
     
