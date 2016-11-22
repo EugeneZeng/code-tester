@@ -44,7 +44,9 @@ $(function(){
         scrollButtons:{ enable:true },
         callbacks:{
             onScrollStart:function(){ myCallback(this,"#onScrollStart") },
-            onScroll:function(){ myCallback(this,"#onScroll") },
+            onScroll:function(){ 
+                myCallback(this,"#onScroll");
+            },
             onTotalScroll:function(){ myCallback(this,"#onTotalScroll") },
             onTotalScrollOffset:60,
             onTotalScrollBack:function(){ myCallback(this,"#onTotalScrollBack") },
@@ -58,16 +60,17 @@ $(function(){
                 $("#mcs-total-scroll-offset").text("60");
                 $("#mcs-total-scroll-back-offset").text("50");
                 clearTimeout(timeout);
-                if(this.mcs.topPct < 1){
-                    timeout = setTimeout(function(){
-                        insertEleFront();
-                        
-                    }, 200);
+                if(this.mcs.top > -30){
+                   timeout = setTimeout(function(){
+                       insertEleBefore();
+                       
+                   }, 200);
                 } 
-                if(this.mcs.topPct > 99){
-                    timeout = setTimeout(function(){
-                        $("#testField").insertNext();
-                    }, 200);
+                var contentHeight = this.mcs.content.height();
+                if(this.mcs.top < -(contentHeight - 270 - 30)){
+                   timeout = setTimeout(function(){
+                       insertEleAfter();
+                   }, 500);
                 }
             },
             alwaysTriggerOffsets:false
@@ -75,10 +78,14 @@ $(function(){
     });
 });
 
-function insertEleFront(){
-    var $firstChild = $("#testField").find("li:first");
-    $("#testField").insertPrevious();
-    $("#scrollBody").mCustomScrollbar('scrollTo',$firstChild)
+function insertEleBefore(){
+    $("#testField").smartAppender("toBefore");
+    
+}
+
+function insertEleAfter(){
+    $("#testField").smartAppender("toAfter");
+    
 }
 
 function myCallback(el,id){
@@ -92,6 +99,16 @@ function myCallback(el,id){
 var appendData = function(dataArray){
     var template = "<li><a href='javascript:void(0);'>{number} - {random}</a></li>";
     $("#testField").setData("scrollingData", dataArray)
-                    .smartAppender(template, {isFromTop: false});
-    $("#scrollBody").mCustomScrollbar('scrollTo','bottom')
+                    .smartAppender(template, {isFromTop: false})
+                    .bind("appendDone.helper", function(e, where, isAppended){
+                        if(!isAppended){
+                            return;
+                        }
+                        if(where === "toBefore"){
+                            $("#scrollBody").mCustomScrollbar('scrollTo', "-=35")
+                        } else if(where === "toAfter"){
+                            $("#scrollBody").mCustomScrollbar('scrollTo', "+=35");
+                        }
+                    });
+    $("#scrollBody").mCustomScrollbar('scrollTo','bottom');
 };

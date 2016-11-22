@@ -24,8 +24,8 @@
         this.opt = $.extend({
             size: 5,
             pages: 3,
-            helperHeight: 30,
             sensitivity: 5,
+            helperHeight: 30,
             scrollHelper: "<div></div>",
             isFromTop: false
         }, options);

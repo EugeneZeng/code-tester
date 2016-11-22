@@ -24,7 +24,9 @@ var Appender = function($ele, template, options){
             size: 5,
             pages: 3,
             datakey: "scrollingData",
-            isFromTop: false
+            isFromTop: false,
+            helperHeight: 30,
+            appendHelper: "<div></div>"
         }, options);
     this.$ele = $ele;
     this.scrollData = {};
@@ -122,8 +124,31 @@ $.extend(Appender.prototype, {
             }
         });
     },
-    initialize: function(){
-        var _this = this;
+    addAppendHelper: function(to){
+        var $helper = $(this.opt.appendHelper);
+            $helper.addClass("append-helper").height(this.opt.helperHeight);
+        if(to === "toBefore"){
+            this.$ele.prepend($helper);
+        } else if(to === "toAfter") {
+            this.$ele.append($helper);
+        }
+        this.$ele.trigger("appendDone.helper", [to, this.isNeedHelper(to)]);
+    },
+    removeAppendHelper:function(){
+        this.$ele.find("div.append-helper")
+            .remove();
+    },
+    isNeedHelper: function(to){
+        var range = this.getCurrentRange();
+        var maxIndex = this.scrollData.extendedData.length - 1;
+        
+        if(to === "toBefore"){
+            return range.start > 0;
+        } else if(to === "toAfter") {
+            return range.end < maxIndex;
+        }
+    },
+    setIndexRangeForInitialize: function(){
         var maxDataIndex = this.$ele.data(this.opt.datakey).length - 1;
         var displayLength = this.opt.size * this.opt.pages;
         var start = 0, end = maxDataIndex;
@@ -138,34 +163,54 @@ $.extend(Appender.prototype, {
             end = maxDataIndex;
         }
         this.$ele.setData("currentIndexRange", start + "," + end);
+    },
+    initialize: function(){
+        var _this = this;
+        this.setIndexRangeForInitialize();
         this.addDataIndexInTemplate();
         this.$ele.bind("dataUpdated."+this.opt.datakey, function(){
             _this.extendData();
+        })
+        .bind("appendDone.dataItems", function(e, to){
+            _this.doChildrenClean();
+            _this.removeAppendHelper();
+            if(_this.isNeedHelper(to)){
+                _this.addAppendHelper(to);
+            }
         }).html(this.getInnerHTML(this.getDataFrame()));
     },
     isDataNotEnough: function(){
         return this.$ele.data(this.opt.datakey).length 
                 <= this.opt.size * (this.opt.pages + 1);
+    },
+    refresh: function(template, options){
+        if(template){
+            this.addDataIndexInTemplate();
+        }
+        if(options){
+            this.opt = $.extend(this.opt, options);
+        }
+        this.setIndexRangeForInitialize();
+        this.$ele.html(this.getInnerHTML(this.getDataFrame()));
     }
 });
 $.fn.setData = setData;
 $.fn.smartAppender = function(template, options){
+    template = $.trim(template);
     if(this.data("smartAppenderInstance")){
-        return;
+        var appender = this.data("smartAppenderInstance");
+        if(template === "toBefore") {
+            this.prepend(appender.previous()).trigger("appendDone.dataItems", ["toBefore"]);
+        }
+        else if(template === "toAfter") {
+            this.append(appender.next()).trigger("appendDone.dataItems", ["toAfter"]);
+        } else {
+            appender.refresh(template, options);
+        }
+    } else {
+        this.data("smartAppenderInstance", new Appender(this, template, options));
     }
-    this.data("smartAppenderInstance", new Appender(this, template, options));
-    return this;
-};
-$.fn.insertNext = function(){
-    var appender = this.data("smartAppenderInstance");
-    this.append(appender.next());
-    appender.doChildrenClean();
-    return this;
-};
-$.fn.insertPrevious = function(){
-    var appender = this.data("smartAppenderInstance");
-    this.prepend(appender.previous());
-    appender.doChildrenClean();
+    
     return this;
 };
 })(jQuery);
