@@ -2,11 +2,22 @@
 <html>
   <head>
     <title>{{title}}</title>
+    <link rel="stylesheet" href="/malihu-custom-scrollbar-plugin/jquery.mCustomScrollbar.css" />
     <link rel='stylesheet' href='/bootstrap/dist/css/bootstrap.min.css' />
     <link rel='stylesheet' href='/bootstrap/dist/css/bootstrap-theme.min.css' />
     <script src="/jquery/dist/jquery.min.js" type="text/javascript"></script>
+    <script src="/malihu-custom-scrollbar-plugin/jquery.mCustomScrollbar.concat.min.js" type="text/javascript"></script>
     <script src="/javascripts/jquery.scrollAppender.js" type="text/javascript"></script>
-    <script src="/javascripts/index.js" type="text/javascript"></script>
+    
+    <style>
+        .list-item{
+            height: 30px;
+        }
+        .on{
+            background-color: 'red';
+            color: #fff;
+        }
+    </style>
   </head>
   <body>
     {{{body}}}

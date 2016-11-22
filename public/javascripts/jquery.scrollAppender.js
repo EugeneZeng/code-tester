@@ -45,13 +45,7 @@
                 _this.updateDisplayingItems();
             })
             .trigger("dataUpdated.currentIndexRange");
-        if(this.opt.isFromTop){
-            this.$scrollWrapper.scrollTop(0);
-            this.scrollData.scrollTop = 0;
-        } else { 
-            this.$scrollWrapper.scrollTop(_this.$scrollWrapper[0].scrollHeight);
-            this.scrollData.scrollTop = this.$scrollWrapper.scrollTop();
-        }
+        this.scrollToDataEdge();
         window.setTimeout(function(){
             _this.$scrollWrapper.bind("scroll", function(e){
                 var timer = _this.$scrollWrapper.data("scrollTimer");
@@ -148,7 +142,6 @@
         getDataFrame: function(){
             var start, end;
             var range = this.$scrollWrapper.data("currentIndexRange");
-            console.log(range);
             start = range.split(",")[0] - 0;
             end = range.split(",")[1] - 0;
                 
@@ -227,6 +220,15 @@
                 this.forScrollingDown();
             }
         },
+        scrollToDataEdge: function(){
+            if(this.opt.isFromTop){
+                this.$scrollWrapper.scrollTop(0);
+                this.scrollData.scrollTop = 0;
+            } else { 
+                this.$scrollWrapper.scrollTop(this.$scrollWrapper[0].scrollHeight);
+                this.scrollData.scrollTop = this.$scrollWrapper.scrollTop();
+            }
+        },
         update: function (template, options){
             if(template){
                 this.template = template;
@@ -272,19 +274,20 @@
             });
             
             var htmlForDisplay = this.getInnerHTML(dataFramForDisplay);
+            $children = this.$scrollWrapper.children("li[dataindex]");
             if($children.length === 0){
                 this.$scrollWrapper.html(htmlForDisplay);
-                return;
-            }
-            if(this.scrollData.isScrollingUp){
-                $children.first().before(htmlForDisplay);
             } else {
-                $children.last().after(htmlForDisplay);
+                if(this.scrollData.isScrollingUp){
+                    $children.first().before(htmlForDisplay);
+                } else {
+                    $children.last().after(htmlForDisplay);
+                }
             }
-            
             
             if(this.isOnTop() || this.isOnBottom()){
                 this.removeScrollHelper();
+                this.scrollToDataEdge();
             } else {
                 this.doAutoAdjustScroll();
             }
@@ -310,10 +313,11 @@
         var appender;
         if(this.data("myScrollAppender")){
            appender = this.data("myScrollAppender");
-           appender.update(template, options)
+           appender.update(template, options);
         } else {
             appender = new scrollAppender(this, template, options);
             this.data("myScrollAppender", appender);
         }
+        return this;
     };
 })(jQuery);

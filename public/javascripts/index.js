@@ -19,20 +19,26 @@
     return s;
 };
 $(function(){
-    $.getJSON("/queryData?length=200").success(function(json){
+    $.getJSON("/queryData?length=200&renew=1").success(function(json){
         appendData(json.data);
+    });
+    $("#operations").click(function(e){
+        if(e.target.name === "getNewest"){
+            $("#testField").scrollAppend("<li class='list-item'><a href='javascript:void(0);'>{number} - {random}</a></li>", {isFromTop:false});
+        }
     });
 });
 function appendData(dataArray){
     $testField = $("#testField");
     $testField.data("scrollingData", dataArray)
-            .scrollAppend("<li><a href='javascript:void(0);'>{number} - {random}</a></li>", {isFromTop:false});
+            .scrollAppend("<li class='list-item'><a href='javascript:void(0);'>{number} - {random}</a></li>", {isFromTop:false});
     
     window.setInterval(function(){
         $.getJSON("/queryData?length=10").success(function(json){
-            data = $testField.data("scrollingData");
-            data.join(json.data);
-            $testField.setData("scrollingData", data);
+            var scrollingData = $testField.data("scrollingData");
+            scrollingData = scrollingData.concat(json.data);
+            $testField.setData("scrollingData", scrollingData);
+            $(".panel-footer").show();
         });
-    }, 1000);
+    }, 10000);
 }
