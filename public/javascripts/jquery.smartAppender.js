@@ -132,7 +132,7 @@ $.extend(Appender.prototype, {
         } else if(to === "toAfter") {
             this.$ele.append($helper);
         }
-        this.$ele.trigger("appendDone", [to, this.isNeedHelper(to)]);
+        this.$ele.trigger("appendDone.helper", [to, this.isNeedHelper(to)]);
     },
     removeAppendHelper:function(){
         this.$ele.find("div.append-helper")
