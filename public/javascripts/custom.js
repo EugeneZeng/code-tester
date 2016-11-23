@@ -100,7 +100,7 @@ var appendData = function(dataArray){
     var template = "<li><a href='javascript:void(0);'>{number} - {random}</a></li>";
     $("#testField").setData("scrollingData", dataArray)
                     .smartAppender(template, {isFromTop: false})
-                    .bind("appendDone.helper", function(e, where, isAppended){
+                    .bind("appendDone", function(e, where, isAppended){
                         if(!isAppended){
                             return;
                         }
