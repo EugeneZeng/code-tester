@@ -199,11 +199,13 @@ $.fn.smartAppender = function(template, options){
     template = $.trim(template);
     if(this.data("smartAppenderInstance")){
         var appender = this.data("smartAppenderInstance");
-        if(template === "toBefore") {
-            this.prepend(appender.previous()).trigger("appendDone.dataItems", ["toBefore"]);
+         if(template === "toBefore") {
+			var $dataItems = $(appender.previous());
+            this.prepend($dataItems).trigger("appendDone.dataItems", ["toBefore", $dataItems]);
         }
         else if(template === "toAfter") {
-            this.append(appender.next()).trigger("appendDone.dataItems", ["toAfter"]);
+			var $dataItems = $(appender.next());
+            this.append($dataItems).trigger("appendDone.dataItems", ["toAfter", $dataItems]);
         } else {
             appender.refresh(template, options);
         }
