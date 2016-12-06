@@ -28,6 +28,7 @@ var Appender = function($ele, template, options){
             helperHeight: 30,
             appendHelper: "<div></div>"
         }, options);
+    this.inRefreshing = false;    
     this.$ele = $ele;
     this.scrollData = {};
     this.template = template;
@@ -170,6 +171,7 @@ $.extend(Appender.prototype, {
         this.addDataIndexInTemplate();
         this.$ele.bind("dataUpdated."+this.opt.datakey, function(){
             _this.extendData();
+            _this.updateCurrentDisplaying();
         })
         .bind("appendDone.dataItems", function(e, to){
             _this.doChildrenClean();
@@ -181,7 +183,7 @@ $.extend(Appender.prototype, {
     },
     isDataNotEnough: function(){
         return this.$ele.data(this.opt.datakey).length 
-                <= this.opt.size * (this.opt.pages + 1);
+                <= this.opt.size * this.opt.pages;
     },
     refresh: function(template, options){
         if(template){
@@ -190,8 +192,34 @@ $.extend(Appender.prototype, {
         if(options){
             this.opt = $.extend(this.opt, options);
         }
+        this.inRefreshing = true;
         this.setIndexRangeForInitialize();
         this.$ele.html(this.getInnerHTML(this.getDataFrame()));
+        this.inRefreshing = false;
+    },
+    updateCurrentDisplaying: function(){
+        var _this = this, $item, $current;
+        if(this.inRefreshing){
+            return;
+        }
+        var isDataEnough = !this.isDataNotEnough();
+        if(this.isDataNotEnough()){
+            this.setIndexRangeForInitialize();
+        }
+        var dataFrame = this.getDataFrame();
+        dataFrame.forEach(function(item, index){   
+            $item = $(_this.template.formatStr(ele));
+            $current = _this.$ele.find("[dataindex="+ item.scrollingDataIndex +"]");
+            if($current.length === 0){
+                _this.$ele.append($item);
+            }
+            if($item.html() != $current.html()){
+                $current.replaceWith($item);
+            }
+        });
+        if(isDataEnough){
+            this.doChildrenClean();
+        }
     }
 });
 $.fn.setData = setData;
