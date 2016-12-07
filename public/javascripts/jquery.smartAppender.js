@@ -241,6 +241,7 @@ $.fn.smartAppender = function(template, options){
             this.append($dataItems).trigger("appendDone.dataItems", ["toAfter", $dataItems]);
         } else {
             appender.refresh(template, options);
+            this.trigger("appendDone.dataItems");
         }
     } else {
         this.data("smartAppenderInstance", new Appender(this, template, options));
