@@ -174,6 +174,9 @@ $.extend(Appender.prototype, {
             _this.updateCurrentDisplaying();
         })
         .bind("appendDone.dataItems", function(e, to){
+            if(_this.isDataNotEnough()){
+                return;
+            }
             _this.doChildrenClean();
             _this.removeAppendHelper();
             if(_this.isNeedHelper(to)){
@@ -207,15 +210,17 @@ $.extend(Appender.prototype, {
             this.setIndexRangeForInitialize();
         }
         var dataFrame = this.getDataFrame();
+        if(_this.$ele.find("li").length > dataFrame.length){
+            _this.$ele.find("li:gt("+ (dataFrame.length - 1) +")").remove();
+        }
         dataFrame.forEach(function(item, index){   
-            $item = $(_this.template.formatStr(ele));
-            $current = _this.$ele.find("[dataindex="+ item.scrollingDataIndex +"]");
+            $item = $(_this.template.formatStr(item));
+            $current = _this.$ele.find("li:eq("+ index +")");
             if($current.length === 0){
                 _this.$ele.append($item);
+                return;
             }
-            if($item.html() != $current.html()){
-                $current.replaceWith($item);
-            }
+            $current.replaceWith($item);
         });
         if(isDataEnough){
             this.doChildrenClean();
@@ -227,7 +232,7 @@ $.fn.smartAppender = function(template, options){
     template = $.trim(template);
     if(this.data("smartAppenderInstance")){
         var appender = this.data("smartAppenderInstance");
-         if(template === "toBefore") {
+        if(template === "toBefore") {
 			var $dataItems = $(appender.previous());
             this.prepend($dataItems).trigger("appendDone.dataItems", ["toBefore", $dataItems]);
         }
