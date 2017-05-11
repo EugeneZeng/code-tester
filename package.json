@@ -16,6 +16,8 @@
     "bootstrap": "*",
     "jquery": "1.11.*",
     "jquery-mousewheel": "*",
+	"lodash": "*",
+	"should": "*",
     "malihu-custom-scrollbar-plugin": "3.*"
   }
 }
